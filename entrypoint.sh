@@ -35,7 +35,7 @@ if [ "${UPDATE_ON_START}" = "true" ] || [ ! -f "${SERVER_EXE}" ]; then
         +quit
 
     # Set up Steam SDK libraries (some servers need these)
-    mkdir -p "${SERVER_DIR}/.steam/sdk32" "${SERVER_DIR}/.steam/sdk64"
+    mkdir -p "${SERVER_DIR}/.steam/sdk32" "${SERVER_DIR}/.steam/sdk64" 2>/dev/null || true
     cp -f /home/cubic/steamcmd/linux32/steamclient.so "${SERVER_DIR}/.steam/sdk32/" 2>/dev/null || true
     cp -f /home/cubic/steamcmd/linux64/steamclient.so "${SERVER_DIR}/.steam/sdk64/" 2>/dev/null || true
 
