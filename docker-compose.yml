@@ -1,0 +1,51 @@
+services:
+  cubic-odyssey:
+    build: .
+    container_name: cubic-odyssey-server
+    restart: unless-stopped
+    environment:
+      # ── Steam credentials (REQUIRED - game is not available anonymously) ──
+      # You need a Steam account that has claimed the free
+      # "Cubic Odyssey Dedicated Server" tool from the Steam store.
+      - STEAM_USER=${STEAM_USER:?Set STEAM_USER in Portainer or .env}
+      - STEAM_PASS=${STEAM_PASS:?Set STEAM_PASS in Portainer or .env}
+      - STEAM_AUTH=${STEAM_AUTH:-}            # Steam Guard code if needed
+
+      # ── Server settings ────────────────────────────────────────────────────
+      - SERVER_NAME=My Cubic Odyssey Server
+      - SERVER_PASSWORD=                     # Leave empty for no password
+      - MAX_PLAYERS=10
+      - GAME_PORT=27001
+      - MAX_PORT=27015
+      - GAMEMODE=adventure                   # adventure or creative
+      - GALAXY_SEED=0                        # 0 = random seed
+      - ALLOW_RELAYING=FALSE
+      - PRIVATE_SERVER=FALSE
+
+      # ── Container settings ─────────────────────────────────────────────────
+      - UPDATE_ON_START=true                 # Update server files on each start
+      - WINEDEBUG=-all                       # Suppress Wine debug noise
+      - TZ=America/Vancouver
+    volumes:
+      # Server files (game binary, SteamCMD downloads)
+      - ./server_files:/home/cubic/server_files:rw
+      # Persistent data (world saves survive rebuilds)
+      - ./persistent_data:/home/cubic/persistent_data:rw
+    ports:
+      - "27001:27001/udp"
+      - "27002:27002/udp"
+      - "27003:27003/udp"
+      - "27004:27004/udp"
+      - "27005:27005/udp"
+      - "27006:27006/udp"
+      - "27007:27007/udp"
+      - "27008:27008/udp"
+      - "27009:27009/udp"
+      - "27010:27010/udp"
+      - "27011:27011/udp"
+      - "27012:27012/udp"
+      - "27013:27013/udp"
+      - "27014:27014/udp"
+      - "27015:27015/udp"
+    # Alternatively, use host networking (simpler, avoids port mapping):
+    # network_mode: host
