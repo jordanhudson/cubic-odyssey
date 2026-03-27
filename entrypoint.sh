@@ -5,14 +5,15 @@ SERVER_DIR="/home/cubic/server_files"
 DATA_DIR="/home/cubic/persistent_data"
 STEAMCMD="/home/cubic/steamcmd/steamcmd.sh"
 CONFIG_FILE="${SERVER_DIR}/config/server_config.txt"
-SERVER_EXE="${SERVER_DIR}/server/CubicOdysseyServer.exe"
+SERVER_EXE=""
 
 echo "============================================"
 echo "  Cubic Odyssey Dedicated Server (Docker)"
 echo "============================================"
 
 # ── Install / Update server files via SteamCMD ──────────────────────
-if [ "${UPDATE_ON_START}" = "true" ] || [ ! -f "${SERVER_EXE}" ]; then
+EXISTING_EXE=$(find "${SERVER_DIR}" -iname "CubicOdysseyServer.exe" -type f 2>/dev/null | head -1)
+if [ "${UPDATE_ON_START}" = "true" ] || [ -z "${EXISTING_EXE}" ]; then
     echo ""
     echo ">> Updating Cubic Odyssey Dedicated Server (AppID ${APP_ID})..."
     echo ""
@@ -26,13 +27,18 @@ if [ "${UPDATE_ON_START}" = "true" ] || [ ! -f "${SERVER_EXE}" ]; then
         STEAM_LOGIN="+login ${STEAM_USER} ${STEAM_PASS} ${STEAM_AUTH}"
     fi
 
-    ${STEAMCMD} \
+    if ! ${STEAMCMD} \
         +@sSteamCmdForcePlatformType windows \
         +force_install_dir "${SERVER_DIR}" \
         ${STEAM_LOGIN} \
         +app_license_request ${APP_ID} \
         +app_update ${APP_ID} validate \
-        +quit
+        +quit; then
+        echo ""
+        echo "ERROR: SteamCMD failed. Sleeping 5 minutes to avoid rate limiting..."
+        sleep 300
+        exit 1
+    fi
 
     # Set up Steam SDK libraries (some servers need these)
     mkdir -p "${SERVER_DIR}/.steam/sdk32" "${SERVER_DIR}/.steam/sdk64" 2>/dev/null || true
@@ -45,15 +51,24 @@ else
     echo ">> Skipping update (UPDATE_ON_START=false and server exists)"
 fi
 
-# ── Verify the server binary exists ──────────────────────────────────
-if [ ! -f "${SERVER_EXE}" ]; then
+# ── Find the server binary ──────────────────────────────────────────
+SERVER_EXE=$(find "${SERVER_DIR}" -iname "CubicOdysseyServer.exe" -type f 2>/dev/null | head -1)
+if [ -z "${SERVER_EXE}" ]; then
     echo ""
-    echo "ERROR: ${SERVER_EXE} not found after install."
+    echo "ERROR: CubicOdysseyServer.exe not found anywhere in ${SERVER_DIR}"
+    echo "Listing all .exe files found:"
+    find "${SERVER_DIR}" -iname "*.exe" -type f 2>/dev/null
+    echo ""
     echo "This game requires a Steam account that OWNS the Cubic Odyssey"
     echo "Dedicated Server tool (free). Anonymous login may not work."
     echo "Set STEAM_USER and STEAM_PASS environment variables."
+    echo ""
+    echo ">> Sleeping 5 minutes before exit to avoid rate-limiting Steam..."
+    sleep 300
     exit 1
 fi
+SERVER_EXE_DIR=$(dirname "${SERVER_EXE}")
+echo ">> Found server binary: ${SERVER_EXE}"
 
 # ── Generate server_config.txt if it doesn't exist ───────────────────
 mkdir -p "${SERVER_DIR}/config"
@@ -86,10 +101,10 @@ fi
 if [ -d "${DATA_DIR}" ]; then
     # Link the Saved directory if the server uses one
     for subdir in Saved saves SaveGames; do
-        if [ -d "${SERVER_DIR}/server/${subdir}" ] && [ ! -L "${SERVER_DIR}/server/${subdir}" ]; then
+        if [ -d "${SERVER_EXE_DIR}/${subdir}" ] && [ ! -L "${SERVER_EXE_DIR}/${subdir}" ]; then
             echo ">> Moving existing ${subdir} to persistent_data"
-            mv "${SERVER_DIR}/server/${subdir}" "${DATA_DIR}/${subdir}"
-            ln -sf "${DATA_DIR}/${subdir}" "${SERVER_DIR}/server/${subdir}"
+            mv "${SERVER_EXE_DIR}/${subdir}" "${DATA_DIR}/${subdir}"
+            ln -sf "${DATA_DIR}/${subdir}" "${SERVER_EXE_DIR}/${subdir}"
         fi
     done
 fi
@@ -144,8 +159,8 @@ echo "============================================"
 echo ""
 echo ">> Launching CubicOdysseyServer.exe via Wine..."
 
-cd "${SERVER_DIR}"
-wine ./server/CubicOdysseyServer.exe \
+cd "${SERVER_EXE_DIR}"
+wine "${SERVER_EXE}" \
     -Port=${GAME_PORT} \
     -MaxPort=${MAX_PORT} \
     -Password="${SERVER_PASSWORD}" \
