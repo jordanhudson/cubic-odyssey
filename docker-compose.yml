@@ -31,6 +31,8 @@ services:
       - ./server_files:/home/cubic/server_files:rw
       # Persistent data (world saves survive rebuilds)
       - ./persistent_data:/home/cubic/persistent_data:rw
+      # Steam session cache (survives rebuilds, avoids repeated Steam Guard)
+      - ./steam_cache:/home/cubic/Steam:rw
     ports:
       - "27001:27001/udp"
       - "27002:27002/udp"
