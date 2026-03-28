@@ -26,10 +26,10 @@ cp .env.example .env
 docker compose up -d --build
 ```
 
-4. Check the server log file for the lobby code (e.g. `DS-ABCDEF`):
+4. Check Docker logs for the lobby code (e.g. `DS-ABCDEF`):
 
 ```bash
-docker compose exec cubic-odyssey cat /root/server_files/server/logs/$(ls -t /root/server_files/server/logs/ | head -1)
+docker compose logs -f cubic-odyssey
 ```
 
 5. Connect in-game using the lobby code
@@ -77,7 +77,6 @@ docker compose restart
 
 ## Logs
 
-The server writes its own log files to `server_files/server/logs/`. Docker
-container logs will show SteamCMD and startup output, but the game server
-itself writes to disk. Look for the `Lobby Key: DS-XXXXXX` line in the
-latest log file to find your connection code.
+The lobby code (`Lobby Key: DS-XXXXXX`) and server status messages appear
+in the Docker container logs. View them with `docker compose logs -f` or
+in the Portainer container logs view.
