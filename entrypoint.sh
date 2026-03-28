@@ -78,7 +78,7 @@ wine "${SERVER_EXE}" \
     -MaxPort=${MAX_PORT} \
     -Password="${SERVER_PASSWORD}" \
     -Gamemode=${GAMEMODE} \
-    -MaxNumPlayers=${MAX_PLAYERS} &
+    -MaxNumPlayers=${MAX_PLAYERS} 2>&1 | grep --line-buffered -v '^[#[:space:]]*$' &
 
 SERVER_PID=$!
 
