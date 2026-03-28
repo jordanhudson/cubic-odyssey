@@ -1,9 +1,9 @@
 #!/bin/bash
 set -e
 
-SERVER_DIR="/home/cubic/server_files"
-DATA_DIR="/home/cubic/persistent_data"
-STEAMCMD="/home/cubic/steamcmd/steamcmd.sh"
+SERVER_DIR="/root/server_files"
+DATA_DIR="/root/persistent_data"
+STEAMCMD="/root/steamcmd/steamcmd.sh"
 CONFIG_FILE="${SERVER_DIR}/config/server_config.txt"
 SERVER_EXE=""
 
@@ -42,8 +42,8 @@ if [ "${UPDATE_ON_START}" = "true" ] || [ -z "${EXISTING_EXE}" ]; then
 
     # Set up Steam SDK libraries (some servers need these)
     mkdir -p "${SERVER_DIR}/.steam/sdk32" "${SERVER_DIR}/.steam/sdk64" 2>/dev/null || true
-    cp -f /home/cubic/steamcmd/linux32/steamclient.so "${SERVER_DIR}/.steam/sdk32/" 2>/dev/null || true
-    cp -f /home/cubic/steamcmd/linux64/steamclient.so "${SERVER_DIR}/.steam/sdk64/" 2>/dev/null || true
+    cp -f /root/steamcmd/linux32/steamclient.so "${SERVER_DIR}/.steam/sdk32/" 2>/dev/null || true
+    cp -f /root/steamcmd/linux64/steamclient.so "${SERVER_DIR}/.steam/sdk64/" 2>/dev/null || true
 
     echo ""
     echo ">> Update complete."
@@ -111,7 +111,7 @@ fi
 
 # ── Initialize Wine prefix (suppress first-run noise) ────────────────
 echo ">> Initializing Wine prefix..."
-export WINEPREFIX="/home/cubic/.wine"
+export WINEPREFIX="/root/.wine"
 wineboot --init 2>/dev/null || true
 
 # ── Start Xvfb (virtual framebuffer for headless Wine) ───────────────

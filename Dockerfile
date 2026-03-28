@@ -21,24 +21,19 @@ RUN dpkg --add-architecture i386 && \
         winbind \
     && rm -rf /var/lib/apt/lists/*
 
-# ── Create unprivileged user ─────────────────────────────────────────
-RUN useradd -m -s /bin/bash cubic
-USER cubic
-WORKDIR /home/cubic
+WORKDIR /root
 
 # ── Install SteamCMD ─────────────────────────────────────────────────
-RUN mkdir -p /home/cubic/steamcmd && \
+RUN mkdir -p /root/steamcmd && \
     curl -sSL https://steamcdn-a.akamaihd.net/client/installer/steamcmd_linux.tar.gz \
-    | tar -xz -C /home/cubic/steamcmd
+    | tar -xz -C /root/steamcmd
 
 # ── Create directories for server files and persistent data ──────────
-RUN mkdir -p /home/cubic/server_files /home/cubic/persistent_data
+RUN mkdir -p /root/server_files /root/persistent_data
 
 # ── Copy entrypoint script ───────────────────────────────────────────
-USER root
-COPY --chown=cubic:cubic entrypoint.sh /home/cubic/entrypoint.sh
-COPY --chown=cubic:cubic entrypoint-root.sh /home/cubic/entrypoint-root.sh
-RUN chmod +x /home/cubic/entrypoint.sh /home/cubic/entrypoint-root.sh
+COPY entrypoint.sh /root/entrypoint.sh
+RUN chmod +x /root/entrypoint.sh
 
 # ── Default environment variables ────────────────────────────────────
 ENV STEAM_USER="anonymous"
@@ -60,4 +55,4 @@ ENV UPDATE_ON_START="true"
 
 EXPOSE 27001-27015/udp
 
-ENTRYPOINT ["/home/cubic/entrypoint-root.sh"]
+ENTRYPOINT ["/root/entrypoint.sh"]
