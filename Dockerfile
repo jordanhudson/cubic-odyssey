@@ -29,7 +29,7 @@ RUN mkdir -p /root/steamcmd && \
     | tar -xz -C /root/steamcmd
 
 # ── Create directories for server files and persistent data ──────────
-RUN mkdir -p /root/server_files /root/persistent_data
+RUN mkdir -p /root/server_files
 
 # ── Copy entrypoint script ───────────────────────────────────────────
 COPY entrypoint.sh /root/entrypoint.sh

@@ -2,10 +2,8 @@
 set -e
 
 SERVER_DIR="/root/server_files"
-DATA_DIR="/root/persistent_data"
 STEAMCMD="/root/steamcmd/steamcmd.sh"
 CONFIG_FILE="${SERVER_DIR}/config/server_config.txt"
-SERVER_EXE=""
 
 echo "============================================"
 echo "  Cubic Odyssey Dedicated Server (Docker)"
@@ -39,11 +37,6 @@ if [ "${UPDATE_ON_START}" = "true" ] || [ -z "${EXISTING_EXE}" ]; then
         sleep 300
         exit 1
     fi
-
-    # Set up Steam SDK libraries (some servers need these)
-    mkdir -p "${SERVER_DIR}/.steam/sdk32" "${SERVER_DIR}/.steam/sdk64" 2>/dev/null || true
-    cp -f /root/steamcmd/linux32/steamclient.so "${SERVER_DIR}/.steam/sdk32/" 2>/dev/null || true
-    cp -f /root/steamcmd/linux64/steamclient.so "${SERVER_DIR}/.steam/sdk64/" 2>/dev/null || true
 
     echo ""
     echo ">> Update complete."
@@ -93,20 +86,6 @@ EOF
     echo ">> Config written to ${CONFIG_FILE}"
 else
     echo ">> Using existing server_config.txt"
-fi
-
-# ── Symlink persistent data (world saves) ────────────────────────────
-# The server stores saves alongside the binary; we link to persistent_data
-# so the volume mount preserves them across container rebuilds.
-if [ -d "${DATA_DIR}" ]; then
-    # Link the Saved directory if the server uses one
-    for subdir in Saved saves SaveGames; do
-        if [ -d "${SERVER_EXE_DIR}/${subdir}" ] && [ ! -L "${SERVER_EXE_DIR}/${subdir}" ]; then
-            echo ">> Moving existing ${subdir} to persistent_data"
-            mv "${SERVER_EXE_DIR}/${subdir}" "${DATA_DIR}/${subdir}"
-            ln -sf "${DATA_DIR}/${subdir}" "${SERVER_EXE_DIR}/${subdir}"
-        fi
-    done
 fi
 
 # ── Initialize Wine prefix (suppress first-run noise) ────────────────
@@ -170,7 +149,8 @@ wine "${SERVER_EXE}" \
 
 SERVER_PID=$!
 echo ">> Server running (PID ${SERVER_PID})"
-echo ">> Connect with the lobby code shown above (e.g. DS-XXXXXX)"
+echo ">> Lobby code will appear in: ${SERVER_EXE_DIR}/logs/"
+echo ">> Check the latest log file for the 'Lobby Key: DS-XXXXXX' line"
 
 # Wait for server process
 wait ${SERVER_PID}
