@@ -161,6 +161,7 @@ echo ">> Launching CubicOdysseyServer.exe via Wine..."
 
 cd "${SERVER_EXE_DIR}"
 wine "${SERVER_EXE}" \
+    -log \
     -Port=${GAME_PORT} \
     -MaxPort=${MAX_PORT} \
     -Password="${SERVER_PASSWORD}" \
