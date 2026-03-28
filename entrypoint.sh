@@ -2,71 +2,35 @@
 set -e
 
 SERVER_DIR="/root/server_files"
+SERVER_EXE="${SERVER_DIR}/server/CubicOdysseyServer.exe"
 STEAMCMD="/root/steamcmd/steamcmd.sh"
 CONFIG_FILE="${SERVER_DIR}/config/server_config.txt"
 
-echo "============================================"
-echo "  Cubic Odyssey Dedicated Server (Docker)"
-echo "============================================"
-
-# ── Install / Update server files via SteamCMD ──────────────────────
-EXISTING_EXE=$(find "${SERVER_DIR}" -iname "CubicOdysseyServer.exe" -type f 2>/dev/null | head -1)
-if [ "${UPDATE_ON_START}" = "true" ] || [ -z "${EXISTING_EXE}" ]; then
-    echo ""
+# ── Install / Update via SteamCMD ────────────────────────────────────
+if [ "${UPDATE_ON_START}" = "true" ] || [ ! -f "${SERVER_EXE}" ]; then
     echo ">> Updating Cubic Odyssey Dedicated Server (AppID ${APP_ID})..."
-    echo ""
-
-    # Determine Steam login
-    if [ -z "${STEAM_USER}" ] || [ "${STEAM_USER}" = "anonymous" ]; then
-        echo ">> Using anonymous login"
-        STEAM_LOGIN="+login anonymous"
-    else
-        echo ">> Logging in as ${STEAM_USER}"
-        STEAM_LOGIN="+login ${STEAM_USER} ${STEAM_PASS} ${STEAM_AUTH}"
-    fi
-
     if ! ${STEAMCMD} \
         +@sSteamCmdForcePlatformType windows \
         +force_install_dir "${SERVER_DIR}" \
-        ${STEAM_LOGIN} \
+        +login ${STEAM_USER} ${STEAM_PASS} ${STEAM_AUTH} \
         +app_license_request ${APP_ID} \
         +app_update ${APP_ID} validate \
         +quit; then
-        echo ""
         echo "ERROR: SteamCMD failed. Sleeping 5 minutes to avoid rate limiting..."
         sleep 300
         exit 1
     fi
-
-    echo ""
-    echo ">> Update complete."
-else
-    echo ">> Skipping update (UPDATE_ON_START=false and server exists)"
 fi
 
-# ── Find the server binary ──────────────────────────────────────────
-SERVER_EXE=$(find "${SERVER_DIR}" -iname "CubicOdysseyServer.exe" -type f 2>/dev/null | head -1)
-if [ -z "${SERVER_EXE}" ]; then
-    echo ""
-    echo "ERROR: CubicOdysseyServer.exe not found anywhere in ${SERVER_DIR}"
-    echo "Listing all .exe files found:"
-    find "${SERVER_DIR}" -iname "*.exe" -type f 2>/dev/null
-    echo ""
-    echo "This game requires a Steam account that OWNS the Cubic Odyssey"
-    echo "Dedicated Server tool (free). Anonymous login may not work."
-    echo "Set STEAM_USER and STEAM_PASS environment variables."
-    echo ""
-    echo ">> Sleeping 5 minutes before exit to avoid rate-limiting Steam..."
+if [ ! -f "${SERVER_EXE}" ]; then
+    echo "ERROR: ${SERVER_EXE} not found. Does your Steam account own the dedicated server tool?"
     sleep 300
     exit 1
 fi
-SERVER_EXE_DIR=$(dirname "${SERVER_EXE}")
-echo ">> Found server binary: ${SERVER_EXE}"
 
-# ── Generate server_config.txt if it doesn't exist ───────────────────
+# ── Generate config if missing ───────────────────────────────────────
 mkdir -p "${SERVER_DIR}/config"
 if [ ! -f "${CONFIG_FILE}" ]; then
-    echo ">> Generating default server_config.txt"
     cat > "${CONFIG_FILE}" <<EOF
 GameParams {
     m_server ServerParams {
@@ -83,63 +47,28 @@ GameParams {
     }
 }
 EOF
-    echo ">> Config written to ${CONFIG_FILE}"
-else
-    echo ">> Using existing server_config.txt"
+    echo ">> Generated ${CONFIG_FILE}"
 fi
 
-# ── Initialize Wine prefix (suppress first-run noise) ────────────────
-echo ">> Initializing Wine prefix..."
+# ── Initialize Wine ──────────────────────────────────────────────────
 export WINEPREFIX="/root/.wine"
 wineboot --init 2>/dev/null || true
 
-# ── Start Xvfb (virtual framebuffer for headless Wine) ───────────────
-echo ">> Starting Xvfb on display ${DISPLAY}"
-Xvfb ${DISPLAY} -screen 0 1024x768x16 -nolisten tcp &
-XVFB_PID=$!
-sleep 2
-
-# Verify Xvfb started
-if ! kill -0 ${XVFB_PID} 2>/dev/null; then
-    echo "ERROR: Xvfb failed to start. Trying alternative..."
-    # Try without -nolisten
-    Xvfb ${DISPLAY} -screen 0 1024x768x16 &
-    XVFB_PID=$!
-    sleep 2
-    if ! kill -0 ${XVFB_PID} 2>/dev/null; then
-        echo "ERROR: Xvfb still failed. Cannot run headless Wine."
-        exit 1
-    fi
-fi
-
-echo ">> Xvfb running (PID ${XVFB_PID})"
-
-# ── Handle shutdown gracefully ───────────────────────────────────────
+# ── Graceful shutdown ────────────────────────────────────────────────
 cleanup() {
-    echo ""
-    echo ">> Shutting down server..."
+    echo ">> Shutting down..."
     kill ${SERVER_PID} 2>/dev/null || true
     wait ${SERVER_PID} 2>/dev/null || true
-    kill ${XVFB_PID} 2>/dev/null || true
-    echo ">> Server stopped."
     exit 0
 }
 trap cleanup SIGTERM SIGINT
 
-# ── Launch the server ────────────────────────────────────────────────
-echo ""
-echo "============================================"
-echo "  Server: ${SERVER_NAME}"
-echo "  Port:   ${GAME_PORT}-${MAX_PORT}/udp"
-echo "  Players: ${MAX_PLAYERS}"
-echo "  Mode:   ${GAMEMODE}"
-echo "  Seed:   ${GALAXY_SEED}"
-echo "============================================"
-echo ""
-echo ">> Launching CubicOdysseyServer.exe via Wine..."
+# ── Launch ───────────────────────────────────────────────────────────
+echo ">> Starting ${SERVER_NAME} (${GAME_PORT}-${MAX_PORT}/udp, ${MAX_PLAYERS} players, ${GAMEMODE})"
+echo ">> Lobby code will appear in: ${SERVER_DIR}/server/logs/"
 
-cd "${SERVER_EXE_DIR}"
-wine "${SERVER_EXE}" \
+cd "${SERVER_DIR}/server"
+xvfb-run wine "${SERVER_EXE}" \
     -log \
     -Port=${GAME_PORT} \
     -MaxPort=${MAX_PORT} \
@@ -148,11 +77,5 @@ wine "${SERVER_EXE}" \
     -MaxNumPlayers=${MAX_PLAYERS} &
 
 SERVER_PID=$!
-echo ">> Server running (PID ${SERVER_PID})"
-echo ">> Lobby code will appear in: ${SERVER_EXE_DIR}/logs/"
-echo ">> Check the latest log file for the 'Lobby Key: DS-XXXXXX' line"
-
-# Wait for server process
 wait ${SERVER_PID}
-echo ">> Server process exited."
 cleanup
