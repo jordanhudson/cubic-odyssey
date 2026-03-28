@@ -81,5 +81,27 @@ wine "${SERVER_EXE}" \
     -MaxNumPlayers=${MAX_PLAYERS} &
 
 SERVER_PID=$!
+
+# ── Watch for lobby code in log files ────────────────────────────────
+(
+    sleep 10
+    LOG_DIR="${SERVER_DIR}/server/logs"
+    for i in $(seq 1 30); do
+        LATEST=$(ls -t "${LOG_DIR}"/*.txt 2>/dev/null | head -1)
+        if [ -n "${LATEST}" ]; then
+            LOBBY=$(grep -o 'Lobby Key: DS-[A-Z0-9]*' "${LATEST}" 2>/dev/null | head -1)
+            if [ -n "${LOBBY}" ]; then
+                echo ""
+                echo "========================================="
+                echo "  ${LOBBY}"
+                echo "========================================="
+                echo ""
+                break
+            fi
+        fi
+        sleep 5
+    done
+) &
+
 wait ${SERVER_PID}
 cleanup
