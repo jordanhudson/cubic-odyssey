@@ -23,6 +23,7 @@ RUN dpkg --add-architecture i386 && \
 
 # ── Create unprivileged user ─────────────────────────────────────────
 RUN useradd -m -s /bin/bash cubic
+USER cubic
 WORKDIR /home/cubic
 
 # ── Install SteamCMD ─────────────────────────────────────────────────
@@ -34,8 +35,9 @@ RUN mkdir -p /home/cubic/steamcmd && \
 RUN mkdir -p /home/cubic/server_files /home/cubic/persistent_data
 
 # ── Copy entrypoint script ───────────────────────────────────────────
-COPY entrypoint.sh /home/cubic/entrypoint.sh
-COPY entrypoint-root.sh /home/cubic/entrypoint-root.sh
+USER root
+COPY --chown=cubic:cubic entrypoint.sh /home/cubic/entrypoint.sh
+COPY --chown=cubic:cubic entrypoint-root.sh /home/cubic/entrypoint-root.sh
 RUN chmod +x /home/cubic/entrypoint.sh /home/cubic/entrypoint-root.sh
 
 # ── Default environment variables ────────────────────────────────────
