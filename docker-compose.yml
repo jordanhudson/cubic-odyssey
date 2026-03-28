@@ -23,8 +23,8 @@ services:
       - PRIVATE_SERVER=FALSE
 
       # ── Container settings ─────────────────────────────────────────────────
+      - APP_ID=3858450
       - UPDATE_ON_START=true                 # Update server files on each start
-      - WINEDEBUG=-all                       # Suppress Wine debug noise
       - TZ=America/Vancouver
     volumes:
       # Server files (game binary, SteamCMD downloads)
