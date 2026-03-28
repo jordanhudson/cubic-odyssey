@@ -50,8 +50,11 @@ EOF
     echo ">> Generated ${CONFIG_FILE}"
 fi
 
-# ── Initialize Wine ──────────────────────────────────────────────────
+# ── Start Xvfb + Wine ────────────────────────────────────────────────
 export WINEPREFIX="/root/.wine"
+Xvfb ${DISPLAY} -screen 0 1024x768x16 -nolisten tcp &
+XVFB_PID=$!
+sleep 1
 wineboot --init 2>/dev/null || true
 
 # ── Graceful shutdown ────────────────────────────────────────────────
@@ -59,6 +62,7 @@ cleanup() {
     echo ">> Shutting down..."
     kill ${SERVER_PID} 2>/dev/null || true
     wait ${SERVER_PID} 2>/dev/null || true
+    kill ${XVFB_PID} 2>/dev/null || true
     exit 0
 }
 trap cleanup SIGTERM SIGINT
@@ -68,7 +72,7 @@ echo ">> Starting ${SERVER_NAME} (${GAME_PORT}-${MAX_PORT}/udp, ${MAX_PLAYERS} p
 echo ">> Lobby code will appear in: ${SERVER_DIR}/server/logs/"
 
 cd "${SERVER_DIR}/server"
-xvfb-run wine "${SERVER_EXE}" \
+wine "${SERVER_EXE}" \
     -log \
     -Port=${GAME_PORT} \
     -MaxPort=${MAX_PORT} \
